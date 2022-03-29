@@ -65,7 +65,7 @@ $ cat ImageSets/Main/val.txt
 
 ## Source-trained Model Weights
 
-Download the source-trained model weights in source_model folder [Link]()
+Download the source-trained model weights in source_model folder [Link](https://drive.google.com/drive/folders/1Aia6wCHPCHGsVk8yQtuByxEyoYm1KfQq?usp=sharing)
 
 ## Training SFDA
 

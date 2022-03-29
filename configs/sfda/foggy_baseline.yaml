@@ -1,0 +1,23 @@
+MODEL:
+  META_ARCHITECTURE: "GeneralizedRCNN"
+  WEIGHT: "detectron2://ImageNetPretrained/MSRA/R-50.pkl"
+  MASK_ON: False
+  RPN:
+    PRE_NMS_TOPK_TEST: 6000
+    POST_NMS_TOPK_TEST: 300
+    ANCHOR_SIZES: (128, 256, 512)
+  ROI_HEADS:
+    NUM_CLASSES: 8
+INPUT:
+  MIN_SIZE_TRAIN: (600,)
+  MIN_SIZE_TEST: 600
+DATASETS:
+  TRAIN: ("cityscape_2007_train_t",)
+  TEST: ("cityscape_2007_test_t",)
+SOLVER:
+  BASE_LR: 0.001
+  WEIGHT_DECAY: 0.0001
+  STEPS: (50000, )
+  MAX_ITER: 70000
+  IMS_PER_BATCH: 1
+OUTPUT_DIR: "foggy_baseline"

@@ -1,0 +1,31 @@
+MODEL:
+  META_ARCHITECTURE: "student_sfda_RCNN"
+  WEIGHT: "detectron2://ImageNetPretrained/MSRA/R-50.pkl"
+  MASK_ON: False
+  RPN:
+    PRE_NMS_TOPK_TEST: 6000
+    POST_NMS_TOPK_TEST: 300
+    ANCHOR_SIZES: (128, 256, 512)
+  ROI_HEADS:
+    NUM_CLASSES: 20
+  RESNETS:
+    NORM: "FrozenBN" 
+    OUT_FEATURES: ["res4"]
+INPUT:
+  MIN_SIZE_TRAIN: (600,)
+  MIN_SIZE_TEST: 600
+DATASETS:
+  TRAIN: ("watercolor_train",)
+  TEST: ("watercolor_test",)
+SOLVER:
+  BASE_LR: 0.001
+  WEIGHT_DECAY: 0.0001
+  STEPS: ()
+  MAX_ITER: 70000
+  IMS_PER_BATCH: 1
+  WARMUP_ITERS: 0
+SOURCE_FREE:
+  TYPE: True
+  MODE: True
+OUTPUT_DIR: "./checkpoint/watercolor"
+

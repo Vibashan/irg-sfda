@@ -254,14 +254,6 @@ def train_sfda(cfg, model_student, model_teacher, resume=False):
     
     checkpoint = copy.deepcopy(model_teacher.state_dict())
 
-    # norm_params = []
-    # for name, p in model_student.named_parameters():
-    #     if "norm" in name:
-    #         norm_params.append(p)
-    #     else:
-    #         p.requires_grad = False
-    # optimizer = optim.SGD(norm_params, lr=0.0001, momentum=0.9, weight_decay=0.0001)
-    # #pdb.set_trace()
     model_teacher.eval()
     model_student.train()
 
@@ -304,49 +296,18 @@ def train_sfda(cfg, model_student, model_teacher, resume=False):
                 teacher_pseudo_proposals, num_rpn_proposal = process_pseudo_label(teacher_proposals, 0.9, "rpn", "thresholding")
                 teacher_pseudo_results, num_roih_proposal = process_pseudo_label(teacher_results, 0.9, "roih", "thresholding")
 
-                #visualize_proposals(cfg, data, teacher_proposals, num_rpn_proposal, "rpn", metadata)
-                #visualize_proposals(cfg, data, teacher_results, num_roih_proposal, "roih", metadata)
-
                 loss_dict = model_student(data, cfg, model_teacher, teacher_features, teacher_proposals, teacher_pseudo_results, mode="train")
 
                 losses = sum(loss_dict.values())
-                #losses = loss_dict["feat_consistency"]
-                # if not torch.isfinite(losses).all():
-                #     print(loss_dict)
-                #     continue
                 assert torch.isfinite(losses).all(), loss_dict
-
-                #loss_dict_reduced = {k: v.item() for k, v in comm.reduce_dict(loss_dict).items()}
-                #losses_reduced = sum(loss for loss in loss_dict_reduced.values())
 
                 losses.backward()
                 optimizer.step()
                 storage.put_scalar("lr", optimizer.param_groups[0]["lr"], smoothing_hint=False)
-                #scheduler.step()
 
-                # if (
-                #     cfg.TEST.EVAL_PERIOD > 0
-                #     and (iteration + 1) % cfg.TEST.EVAL_PERIOD == 0
-                #     and iteration != max_iter - 1
-                # ):
-                #     test_sfda(cfg, model)
-                #     # Compared to "train_net.py", the test results are not dumped to EventStorage
-                #     comm.synchronize()
                 if iteration - start_iter > 5 and ((iteration + 1) % 50 == 0 or iteration == max_iter - 1):
                     print("epoch: ", epoch, "lr:", optimizer.param_groups[0]["lr"], ''.join(['{0}: {1}, '.format(k, v.item()) for k,v in loss_dict.items()]))
-                    # for writer in writers:
-                    #     writer.write()
-                    # if (iteration + 1) % 1000 == 0:
-                    #     new_teacher_dict = update_teacher_model(model_student, model_teacher, keep_rate=0.9)
-                    #     model_teacher.load_state_dict(new_teacher_dict)
-                
-                
-                # new_teacher_dict = update_teacher_model(model_student, model_teacher, keep_rate=0.996)
-                # model_teacher.load_state_dict(new_teacher_dict)
 
-                # if iteration - start_iter > 5 and ((iteration + 1) % 20 == 0 or iteration == max_iter - 1):
-                #     for writer in writers:
-                #         writer.write()
                 periodic_checkpointer.step(iteration)
 
             new_teacher_dict = update_teacher_model(model_student, model_teacher, keep_rate=0.9)
@@ -391,13 +352,7 @@ def setup(args):
 
 
 def main(args):
-    # while 1:
-    #     nvmlInit()
-    #     h = nvmlDeviceGetHandleByIndex(0)
-    #     info = nvmlDeviceGetMemoryInfo(h)
-    #     if info.free > info.used:
-    #         break
-    
+
     cfg = setup(args)
 
     model_student = build_model(cfg)

@@ -45,7 +45,7 @@ from .roi_heads import (
     build_mask_head,
     build_roi_heads,
 )
-from .test_time_augmentation import DatasetMapperTTA, GeneralizedRCNNWithTTA
+
 from .mmdet_wrapper import MMDetBackbone, MMDetDetector
 
 _EXCLUDE = {"ShapeSpec"}

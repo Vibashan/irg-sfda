@@ -18,7 +18,7 @@ from detectron2.utils.logger import _log_api_usage, log_first_n
 
 from .catalog import DatasetCatalog, MetadataCatalog
 from .common import AspectRatioGroupedDataset, DatasetFromList, MapDataset, ToIterableDataset
-from .dataset_mapper import DatasetMapper, SW_DatasetMapper, Corruption_DatasetMapper
+from .dataset_mapper import DatasetMapper, SW_DatasetMapper
 from .detection_utils import check_metadata_consistency
 from .samplers import (
     InferenceSampler,

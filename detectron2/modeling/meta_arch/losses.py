@@ -11,7 +11,7 @@ import torch.nn.functional as F
 
 class GraphConLoss(nn.Module):
     def __init__(self, temperature=0.07, contrast_mode='all', base_temperature=0.07*2):
-        super(GraphConLoss_new_st, self).__init__()
+        super(GraphConLoss, self).__init__()
         self.temperature = temperature
         self.contrast_mode = contrast_mode
         self.base_temperature = base_temperature

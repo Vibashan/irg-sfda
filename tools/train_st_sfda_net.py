@@ -318,8 +318,6 @@ def train_sfda(cfg, model_student, model_teacher, resume=False):
                 print("Student model testing@", epoch)
                 test_sfda(cfg, model_student)
 
-                #new_teacher_dict = update_teacher_model(model_student, model_teacher, keep_rate=0.996)
-                #model_teacher.load_state_dict(new_teacher_dict)
                 model_teacher.eval()
                 print("Teacher model testing@", epoch)
                 test_sfda(cfg, model_teacher)
@@ -331,8 +329,6 @@ def train_sfda(cfg, model_student, model_teacher, resume=False):
     print("Student model testing@", epoch)
     test_sfda(cfg, model_student)
 
-    #new_teacher_dict = update_teacher_model(model_student, model_teacher, keep_rate=0.996)
-    #model_teacher.load_state_dict(new_teacher_dict)
     model_teacher.eval()
     print("Teacher model testing@", epoch)
     test_sfda(cfg, model_teacher)

@@ -81,14 +81,6 @@ CUDA_VISIBLE_DEVICES=$GPU_ID python tools/plain_test_net.py --eval-only
                     --config-file configs/sfda/sfda_foggy.yaml --model-dir $PATH TO CHECKPOINT
 ```
 
-## Source training
-
-Coming soon...!!!
-
-## Extra Note
-
-DA Faster-RCNN reimplementation using detectron2 code base will be intergrated soon...!!!
-
 
 
 ### Acknowledgements:

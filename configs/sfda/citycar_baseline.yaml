@@ -20,10 +20,4 @@ SOLVER:
   STEPS: (50000, )
   MAX_ITER: 70000
   IMS_PER_BATCH: 1
-SOURCE_FREE:
-  TYPE: False
-  MODE: False
-  CORRUPTION: False
-  FEAT_ALIGN:  False
-  LOGITS_ALIGN:  False
 OUTPUT_DIR: "citycar_baseline"

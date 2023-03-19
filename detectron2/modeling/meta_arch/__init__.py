@@ -7,7 +7,6 @@ from .panoptic_fpn import PanopticFPN
 
 # import all the meta_arch, so they will be registered
 from .rcnn import GeneralizedRCNN, ProposalNetwork
-from .ttda_rcnn import ttda_RCNN
 from .student_sfda_rcnn import student_sfda_RCNN
 from .teacher_sfda_rcnn import teacher_sfda_RCNN
 from .retinanet import RetinaNet

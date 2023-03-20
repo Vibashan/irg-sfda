@@ -26,7 +26,7 @@
 
 ## Installation Instructions
 - We use Python 3.6, PyTorch 1.9.0 (CUDA 10.2 build).
-- We codebase is built on [Detectron](https://github.com/facebookresearch/detectron2).
+- The codebase is built on [Detectron](https://github.com/facebookresearch/detectron2).
 
 ```angular2
 conda create -n irg_sfda python=3.6

@@ -85,7 +85,7 @@ CUDA_VISIBLE_DEVICES=$GPU_ID python tools/train_st_sfda_net.py \
 - After training, load the teacher model weights and perform evaluation using
 ```angular2
 CUDA_VISIBLE_DEVICES=$GPU_ID python tools/plain_test_net.py --eval-only \ 
---config-file configs/sfda/sfda_foggy.yaml --model-dir $PATH TO CHECKPOINT
+--config-file configs/sfda/foggy_baseline.yaml --model-dir $PATH TO CHECKPOINT
 ```
 
 ## Results

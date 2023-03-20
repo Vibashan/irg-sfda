@@ -90,7 +90,7 @@ CUDA_VISIBLE_DEVICES=$GPU_ID python tools/plain_test_net.py --eval-only \
 
 ## Results
 
-- Pre-trained models can be downloaded from [Link](https://drive.google.com/drive/folders/1Aia6wCHPCHGsVk8yQtuByxEyoYm1KfQq?usp=sharing).
+- Pre-trained models can be downloaded from [Link](https://drive.google.com/drive/folders/1RJzz4u9WV8mrcAdz_Z7_k-SSQ7SPO9hE?usp=share_link).
 
 
 ## Citation

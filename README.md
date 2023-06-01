@@ -98,11 +98,12 @@ CUDA_VISIBLE_DEVICES=$GPU_ID python tools/plain_test_net.py --eval-only \
 If you found IRG SFDA useful in your research, please consider starring ⭐ us on GitHub and citing 📚 us in your research!
 
 ```bibtex
-@article{vs2022instance,
-  title={Instance Relation Graph Guided Source-Free Domain Adaptive Object Detection},
+@inproceedings{vs2023instance,
+  title={Instance relation graph guided source-free domain adaptive object detection},
   author={VS, Vibashan and Oza, Poojan and Patel, Vishal M},
-  journal={arXiv preprint arXiv:2203.15793},
-  year={2022}
+  booktitle={Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition},
+  pages={3520--3530},
+  year={2023}
 }
 ```
 

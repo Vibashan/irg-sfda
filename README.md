@@ -4,7 +4,7 @@
 
 [Vibashan VS](https://vibashan.github.io/), [Poojan Oza](https://www.linkedin.com/in/poojan-oza-a7b68350/), [Vishal M Patel](https://scholar.google.com/citations?user=AkEXTbIAAAAJ&hl=en)
 
-[[`Project Page`](https://viudomain.github.io/irg-sfda-web/)] [[`arXiv`](https://arxiv.org/abs/2203.15793)] [[`pdf`](https://arxiv.org/pdf/2203.15793.pdf)] [[`BibTeX`](https://github.com/Vibashan/irg-sfda/blob/main/reference.bib)]
+[[`Project Page`](https://viudomain.github.io/irg-sfda-web/)] [[`arXiv`](https://arxiv.org/abs/2203.15793)] [[`pdf`](https://arxiv.org/pdf/2203.15793.pdf)] [[`Slides`](https://docs.google.com/presentation/d/1AMVnharvA3A_UCXIf6XrLEiGG_sOF0YE/edit?usp=sharing&ouid=115004586392986149446&rtpof=true&sd=true)] [[`BibTeX`](https://github.com/Vibashan/irg-sfda/blob/main/reference.bib)]
 
 <p align="center">
   <img src="imgs/Archi.png" width="800"/>

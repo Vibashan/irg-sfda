@@ -515,6 +515,7 @@ _C.MODEL.RESNETS.DEFORM_MODULATED = False
 # Number of groups in deformable conv.
 _C.MODEL.RESNETS.DEFORM_NUM_GROUPS = 1
 
+_C.MODEL.ONLY_PSEUDOLABEL_TRAIN = False
 
 # ---------------------------------------------------------------------------- #
 # Solver
@@ -572,7 +573,7 @@ _C.SOLVER.WEIGHT_DECAY_BIAS = _C.SOLVER.WEIGHT_DECAY
 
 # Gradient clipping
 _C.SOLVER.CLIP_GRADIENTS = CN({"ENABLED": False})
-# Type of gradient clipping, currently 2 values are supported:
+# Type of gradient clipping, currently 2 values are supported
 # - "value": the absolute values of elements of each gradients are clipped
 # - "norm": the norm of the gradient for each parameter is clipped thus
 #   affecting all elements in the parameter
@@ -644,3 +645,7 @@ _C.VIS_PERIOD = 0
 # Do not commit any configs into it.
 _C.GLOBAL = CN()
 _C.GLOBAL.HACK = 1.0
+
+_C.ADAPT = CN()
+_C.ADAPT.CLS = False
+_C.ADAPT.CLS_MATCH = [-1, -1, 0, -1, -1, -1, -1, -1]    # ( 'person', 'rider', 'car', 'truck', 'bus', 'train', 'motorcycle', 'bicycle')

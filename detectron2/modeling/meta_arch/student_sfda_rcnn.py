@@ -205,6 +205,9 @@ class student_sfda_RCNN(nn.Module):
         losses.update(detector_losses)
         losses.update(proposal_losses)
 
+        if cfg.MODEL.ONLY_PSEUDOLABEL_TRAIN:
+            return losses
+
         s_box_features = self.roi_heads._shared_roi_transform([features['res4']], [t_proposals[0].proposal_boxes]) #t_proposals[0], results[1]
         s_roih_logits = self.roi_heads.box_predictor(s_box_features.mean(dim=[2, 3]))
 

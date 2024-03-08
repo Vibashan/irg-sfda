@@ -114,9 +114,9 @@ class DatasetMapper:
             )
         return ret
 
-    def _transform_annotations(self, dataset_dict, transforms, image_shape):
+    def _transform_annotations(self, dataset_dict, transforms, image_shape, ann_key="annotations"):
         # USER: Modify this if you want to keep them for some reason.
-        for anno in dataset_dict["annotations"]:
+        for anno in dataset_dict[ann_key]:
             if not self.use_instance_mask:
                 anno.pop("segmentation", None)
             if not self.use_keypoint:
@@ -127,7 +127,7 @@ class DatasetMapper:
             utils.transform_instance_annotations(
                 obj, transforms, image_shape, keypoint_hflip_indices=self.keypoint_hflip_indices
             )
-            for obj in dataset_dict.pop("annotations")
+            for obj in dataset_dict.pop(ann_key)
             if obj.get("iscrowd", 0) == 0
         ]
         instances = utils.annotations_to_instances(
@@ -141,7 +141,9 @@ class DatasetMapper:
         # the intersection of original bounding box and the cropping box.
         if self.recompute_boxes:
             instances.gt_boxes = instances.gt_masks.get_bounding_boxes()
-        dataset_dict["instances"] = utils.filter_empty_instances(instances)
+
+        inst_key = "instances" if ann_key == "annotations" else "instances_synth"
+        dataset_dict[inst_key] = utils.filter_empty_instances(instances)
 
     def __call__(self, dataset_dict):
         """
@@ -190,6 +192,9 @@ class DatasetMapper:
 
         if "annotations" in dataset_dict:
             self._transform_annotations(dataset_dict, transforms, image_shape)
+
+        if "annotations_synth" in dataset_dict:
+            self._transform_annotations(dataset_dict, transforms, image_shape, ann_key="annotations_synth")
 
         return dataset_dict
 

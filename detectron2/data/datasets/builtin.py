@@ -315,6 +315,21 @@ def register_all_cityscape_car(root):
         MetadataCatalog.get(name).evaluator_type = "cityscape_car"
 
 
+def register_all_cityscape_synthetic(root):
+    SPLITS = [
+        ("cityscape_car_2007_train_s_synth", "cityscape/VOC2007-synth", "train_s", "cityscape_car"),
+        ("cityscape_2007_train_s_synth", "cityscape/VOC2007-synth", "train_s", "cityscape"),
+        ("cityscape_2007_train_t_synth", "cityscape/VOC2007-synth", "train_t", "foggy"),
+    ]
+    for name, dirname, split, eval_type in SPLITS:
+        year = 2007 if "2007" in name else 2012
+        if eval_type == "cityscape_car":
+            register_cityscape_car(name, os.path.join(root, dirname), split, year, synthetic=True)
+        else:
+            register_cityscape(name, os.path.join(root, dirname), split, year, synthetic=True)
+        MetadataCatalog.get(name).evaluator_type = eval_type
+
+
 def register_all_ade20k(root):
     root = os.path.join(root, "ADEChallengeData2016")
     for name, dirname in [("train", "training"), ("val", "validation")]:
@@ -352,4 +367,4 @@ if __name__.endswith(".builtin"):
     register_all_sim10k(_root)
     register_all_kitti(_root)
     register_all_cityscape_car(_root)
-
+    register_all_cityscape_synthetic(_root)

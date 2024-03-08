@@ -24,7 +24,7 @@ CLASS_NAMES = ( 'person', 'rider', 'car', 'truck', 'bus', 'train', 'motorcycle',
 # )
 # fmt: on
 
-def load_cityscape_instances(dirname: str, split: str, class_names: Union[List[str], Tuple[str, ...]]):
+def load_cityscape_instances(dirname: str, split: str, class_names: Union[List[str], Tuple[str, ...]], synthetic: bool):
     """
     Load Cityscape detection annotations to Detectron2 format.
 
@@ -78,8 +78,8 @@ def load_cityscape_instances(dirname: str, split: str, class_names: Union[List[s
     return dicts
 
 
-def register_cityscape(name, dirname, split, year, class_names=CLASS_NAMES):
-    DatasetCatalog.register(name, lambda: load_cityscape_instances(dirname, split, class_names))
+def register_cityscape(name, dirname, split, year, class_names=CLASS_NAMES, synthetic=False):
+    DatasetCatalog.register(name, lambda: load_cityscape_instances(dirname, split, class_names, synthetic))
     MetadataCatalog.get(name).set(
         thing_classes=list(class_names), dirname=dirname, year=year, split=split
     )

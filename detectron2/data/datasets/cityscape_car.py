@@ -17,9 +17,10 @@ __all__ = ["load_cityscape_car_instances", "register_cityscape_car"]
 
 # fmt: off
 CLASS_NAMES = ( "car", "background")
+SYNTH_CLASS_NAMES = ( 'person', 'rider', 'car', 'truck', 'bus', 'train', 'motorcycle', 'bicycle')
 # fmt: on
 
-def load_cityscape_car_instances(dirname: str, split: str, class_names: Union[List[str], Tuple[str, ...]]):
+def load_cityscape_car_instances(dirname: str, split: str, class_names: Union[List[str], Tuple[str, ...]], synthetic: bool):
     """
     Load cityscape_car detection annotations to Detectron2 format.
 
@@ -34,6 +35,7 @@ def load_cityscape_car_instances(dirname: str, split: str, class_names: Union[Li
     # Needs to read many small annotation files. Makes sense at local
 
     annotation_dirname = PathManager.get_local_path(os.path.join(dirname, "Annotations/"))
+    annotation_synth_dirname = PathManager.get_local_path(os.path.join(dirname, "Annotations_synth/"))
     dicts = []
     for fileid in fileids:
         anno_file = os.path.join(annotation_dirname, fileid + ".xml")
@@ -70,12 +72,22 @@ def load_cityscape_car_instances(dirname: str, split: str, class_names: Union[Li
                     {"category_id": class_names.index(cls), "bbox": bbox, "bbox_mode": BoxMode.XYXY_ABS}
                 )
         r["annotations"] = instances
+
+        if synthetic:
+            anno_file = os.path.join(annotation_synth_dirname, fileid + ".txt")
+            instances = []
+            for line in open(anno_file).readlines():
+                cls, x1, y1, x2, y2 = line.strip().split(',')
+                bbox = [float(v) for v in [x1, y1, x2, y2]]
+                if cls in SYNTH_CLASS_NAMES:
+                    instances.append({"category_id": SYNTH_CLASS_NAMES.index(cls), "bbox": bbox, "bbox_mode": BoxMode.XYXY_ABS})
+            r["annotations_synth"] = instances
         dicts.append(r)
     return dicts
 
 
-def register_cityscape_car(name, dirname, split, year, class_names=CLASS_NAMES):
-    DatasetCatalog.register(name, lambda: load_cityscape_car_instances(dirname, split, class_names))
+def register_cityscape_car(name, dirname, split, year, class_names=CLASS_NAMES, synthetic=False):
+    DatasetCatalog.register(name, lambda: load_cityscape_car_instances(dirname, split, class_names, synthetic))
     MetadataCatalog.get(name).set(
         thing_classes=list(class_names), dirname=dirname, year=year, split=split
     )

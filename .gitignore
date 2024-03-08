@@ -1,0 +1,9 @@
+*.pyc
+*_C*
+dataset/*
+build/*
+models/*
+outputs/*
+wandb/*
+detectron2.egg-info/*
+scripts/*

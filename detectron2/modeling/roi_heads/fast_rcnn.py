@@ -261,6 +261,33 @@ class FastRCNNOutputLayers(nn.Module):
             # fmt: on
         }
 
+    def extend_classes(self, cls_map):
+        self.num_classes = len(cls_map)
+        old_ckp = [(l.weight, l.bias) for l in [self.cls_score, self.bbox_pred]]
+
+        input_size = self.cls_score.weight.shape[1]
+        # prediction layer for num_classes foreground classes and one background class (hence + 1)
+        self.cls_score = nn.Linear(input_size, self.num_classes + 1)
+        self.bbox_pred = nn.Linear(input_size, self.num_classes * 4)
+
+        nn.init.normal_(self.cls_score.weight, std=0.01)
+        nn.init.normal_(self.bbox_pred.weight, std=0.001)
+        for l in [self.cls_score, self.bbox_pred]:
+            nn.init.constant_(l.bias, 0)
+
+        with torch.no_grad():
+            for new_idx, old_idx in enumerate(cls_map + [-1]):
+                # if old_idx == -1:
+                #     continue
+                self.cls_score.weight[new_idx] = old_ckp[0][0][old_idx]
+                self.cls_score.bias[new_idx] = old_ckp[0][1][old_idx]
+                if old_idx > -1:
+                    self.bbox_pred.weight[new_idx] = old_ckp[1][0][old_idx]
+                    self.bbox_pred.bias[new_idx] = old_ckp[1][1][old_idx]
+                print("Using {}th class weights of old checkpoint as {}th class weights!".format(old_idx, new_idx))
+            # self.cls_score.weight[-1] = old_ckp[0][0][-1]
+            # self.cls_score.bias[-1] = old_ckp[0][1][-1]
+
     def forward(self, x):
         """
         Args:

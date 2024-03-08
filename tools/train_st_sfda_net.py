@@ -22,6 +22,9 @@ It also includes fewer abstraction, therefore is easier to add custom logic.
 import logging
 import os
 import copy
+import time
+import datetime
+import wandb
 import torch.optim as optim
 from collections import OrderedDict
 import torch
@@ -61,7 +64,7 @@ from detectron2.utils.events import EventStorage
 import pdb
 import cv2
 from pynvml import *
-from detectron2.structures.boxes import Boxes
+from detectron2.structures.boxes import Boxes, pairwise_iou
 from detectron2.structures.instances import Instances
 from detectron2.data.detection_utils import convert_image_to_rgb
 
@@ -129,7 +132,7 @@ def get_evaluator(cfg, dataset_name, output_folder=None):
 # =====================================================
 # ================== Pseduo-labeling ==================
 # =====================================================
-def threshold_bbox(proposal_bbox_inst, thres=0.7, proposal_type="roih"):
+def threshold_bbox(proposal_bbox_inst, thres=0.7, proposal_type="roih", synth_inst=None, iou_thres=0.7):
     if proposal_type == "rpn":
         valid_map = proposal_bbox_inst.objectness_logits > thres
 
@@ -149,6 +152,8 @@ def threshold_bbox(proposal_bbox_inst, thres=0.7, proposal_type="roih"):
     elif proposal_type == "roih":
         valid_map = proposal_bbox_inst.scores > thres
 
+        # if synthetic objects exist,
+
         # create instances containing boxes and gt_classes
         image_shape = proposal_bbox_inst.image_size
         new_proposal_inst = Instances(image_shape)
@@ -157,21 +162,38 @@ def threshold_bbox(proposal_bbox_inst, thres=0.7, proposal_type="roih"):
         new_bbox_loc = proposal_bbox_inst.pred_boxes.tensor[valid_map, :]
         new_boxes = Boxes(new_bbox_loc)
 
-        # add boxes to instances
-        new_proposal_inst.gt_boxes = new_boxes
-        new_proposal_inst.gt_classes = proposal_bbox_inst.pred_classes[valid_map]
-        new_proposal_inst.scores = proposal_bbox_inst.scores[valid_map]
+        if synth_inst is not None:
+            # add synthetic object and boxes and pseudo labeled boxes to instances
+            synth_boxes = Boxes(torch.stack([torch.Tensor(i['bbox']) for i in synth_inst])).to(new_boxes.device)
+            iou = pairwise_iou(new_boxes, synth_boxes)
+            non_overlapped = iou.max(dim=1)[0] < iou_thres
+            new_proposal_inst.gt_boxes = Boxes.cat([new_boxes[non_overlapped], synth_boxes])
+
+            pseudo_labeled_classes = proposal_bbox_inst.pred_classes[valid_map][non_overlapped]
+            synth_classes = torch.Tensor([i['category_id'] for i in synth_inst]).int().to(pseudo_labeled_classes.device)
+            new_proposal_inst.gt_classes = torch.cat([pseudo_labeled_classes, synth_classes])
+
+            pseudo_labeled_scores = proposal_bbox_inst.scores[valid_map][non_overlapped]
+            synth_scores = torch.ones(synth_classes.shape).to(pseudo_labeled_scores.device)
+            new_proposal_inst.scores = torch.cat([pseudo_labeled_scores, synth_scores])
+        else:
+            # add boxes to instances
+            new_proposal_inst.gt_boxes = new_boxes
+            new_proposal_inst.gt_classes = proposal_bbox_inst.pred_classes[valid_map]
+            new_proposal_inst.scores = proposal_bbox_inst.scores[valid_map]
 
     return new_proposal_inst
 
-def process_pseudo_label(proposals_rpn_k, cur_threshold, proposal_type, psedo_label_method=""):
+
+def process_pseudo_label(proposals_rpn_k, cur_threshold, proposal_type, psedo_label_method="", synth_instances=None):
     list_instances = []
     num_proposal_output = 0.0
-    for proposal_bbox_inst in proposals_rpn_k:
+    for idx, proposal_bbox_inst in enumerate(proposals_rpn_k):
         # thresholding
         if psedo_label_method == "thresholding":
+            synth_inst = synth_instances[idx] if synth_instances is not None else None
             proposal_bbox_inst = threshold_bbox(
-                proposal_bbox_inst, thres=cur_threshold, proposal_type=proposal_type
+                proposal_bbox_inst, thres=cur_threshold, proposal_type=proposal_type, synth_inst=synth_inst
             )
         else:
             raise ValueError("Unkown pseudo label boxes methods")
@@ -247,7 +269,7 @@ def test_sfda(cfg, model):
                 logger.info("AP for {}: {}".format(cls_names[i], cls_aps[i]))
     if len(results) == 1:
         results = list(results.values())[0]
-    return results
+    return results, cls_names, cls_aps
 
 
 def train_sfda(cfg, model_student, model_teacher, resume=False):
@@ -276,8 +298,14 @@ def train_sfda(cfg, model_student, model_teacher, resume=False):
     writers = default_writers(cfg.OUTPUT_DIR, max_sf_da_iter) if comm.is_main_process() else []
 
     model_teacher.eval()
-    test_sfda(cfg, model_teacher)
+    results, cls_names, cls_aps = test_sfda(cfg, model_teacher)
+    wandb_log = {"teacher-{}".format(name): ap for name, ap in zip(cls_names, cls_aps)}
+    wandb_log["teacher-AP"] = results['bbox']['AP']
+    wandb_log["teacher-AP50"] = results['bbox']['AP50']
+    wandb.log(wandb_log, step=0)
 
+    start_time = time.perf_counter()
+    iters_after_start = 0
     with EventStorage(start_iter) as storage:
         for epoch in range(1, total_epochs+1):
             cfg.defrost()
@@ -288,13 +316,16 @@ def train_sfda(cfg, model_student, model_teacher, resume=False):
             model_student.train()
             for data, iteration in zip(data_loader, range(start_iter, max_iter)):
                 storage.iter = iteration
+                iters_after_start += 1
                 optimizer.zero_grad()
 
                 with torch.no_grad():
                     _, teacher_features, teacher_proposals, teacher_results = model_teacher(data, mode="train")
 
-                teacher_pseudo_proposals, num_rpn_proposal = process_pseudo_label(teacher_proposals, 0.9, "rpn", "thresholding")
-                teacher_pseudo_results, num_roih_proposal = process_pseudo_label(teacher_results, 0.9, "roih", "thresholding")
+                # teacher_pseudo_proposals, num_rpn_proposal = process_pseudo_label(teacher_proposals, 0.9, "rpn", "thresholding")
+
+                synth_instances = [d["annotations_synth"] for d in data] if "annotations_synth" in data[0] else None
+                teacher_pseudo_results, num_roih_proposal = process_pseudo_label(teacher_results, 0.9, "roih", "thresholding", synth_instances=synth_instances)
 
                 loss_dict = model_student(data, cfg, model_teacher, teacher_features, teacher_proposals, teacher_pseudo_results, mode="train")
 
@@ -306,24 +337,39 @@ def train_sfda(cfg, model_student, model_teacher, resume=False):
                 storage.put_scalar("lr", optimizer.param_groups[0]["lr"], smoothing_hint=False)
 
                 if iteration - start_iter > 5 and ((iteration + 1) % 50 == 0 or iteration == max_iter - 1):
-                    print("epoch: ", epoch, "lr:", optimizer.param_groups[0]["lr"], ''.join(['{0}: {1}, '.format(k, v.item()) for k,v in loss_dict.items()]))
+                    total_seconds_per_batch = (time.perf_counter() - start_time) / iters_after_start
+                    eta = datetime.timedelta(seconds=int(total_seconds_per_batch * (total_epochs * max_iter - iters_after_start)))
+                    print("Epoch {}/{} Iter {}/{}".format(epoch, total_epochs, iteration, max_iter), "lr:", optimizer.param_groups[0]["lr"], ''.join(['{}: {:.3f}, '.format(k, v.item()) for k,v in loss_dict.items()]), "ETA:", eta)
+
+                # wandb log
+                wandb_log = {k: v.item() for k, v in loss_dict.items()}
+                wandb_log["lr"] = optimizer.param_groups[0]["lr"]
+                wandb.log(wandb_log, step=iters_after_start)
 
                 periodic_checkpointer.step(iteration)
 
             new_teacher_dict = update_teacher_model(model_student, model_teacher, keep_rate=0.9)
             model_teacher.load_state_dict(new_teacher_dict)
 
-            if epoch == 1 or epoch == 10:
-                model_student.eval()
-                print("Student model testing@", epoch)
-                test_sfda(cfg, model_student)
+            # save checkpoint and evaluate every epoch
+            model_student.eval()
+            print("Student model testing@", epoch)
+            results, cls_names, cls_aps = test_sfda(cfg, model_student)
+            wandb_log = {"student-{}".format(name): ap for name, ap in zip(cls_names, cls_aps)}
+            wandb_log["student-AP"] = results['bbox']['AP']
+            wandb_log["student-AP50"] = results['bbox']['AP50']
+            wandb.log(wandb_log, step=iters_after_start)
 
-                model_teacher.eval()
-                print("Teacher model testing@", epoch)
-                test_sfda(cfg, model_teacher)
+            model_teacher.eval()
+            print("Teacher model testing@", epoch)
+            results, cls_names, cls_aps = test_sfda(cfg, model_teacher)
+            wandb_log = {"teacher-{}".format(name): ap for name, ap in zip(cls_names, cls_aps)}
+            wandb_log["teacher-AP"] = results['bbox']['AP']
+            wandb_log["teacher-AP50"] = results['bbox']['AP50']
+            wandb.log(wandb_log, step=iters_after_start)
 
-                torch.save(model_teacher.state_dict(), cfg.OUTPUT_DIR + "/model_teacher_{}.pth".format(epoch))
-                torch.save(model_student.state_dict(), cfg.OUTPUT_DIR + "/model_student_{}.pth".format(epoch))
+            torch.save(model_teacher.state_dict(), cfg.OUTPUT_DIR + "/model_teacher_{}.pth".format(epoch))
+            torch.save(model_student.state_dict(), cfg.OUTPUT_DIR + "/model_student_{}.pth".format(epoch))
     
     model_student.eval()
     print("Student model testing@", epoch)
@@ -332,7 +378,6 @@ def train_sfda(cfg, model_student, model_teacher, resume=False):
     model_teacher.eval()
     print("Teacher model testing@", epoch)
     test_sfda(cfg, model_teacher)
-
 
 
 def setup(args):
@@ -360,7 +405,18 @@ def main(args):
 
     DetectionCheckpointer(model_student, save_dir=cfg.OUTPUT_DIR).load(args.model_dir)
     DetectionCheckpointer(model_teacher, save_dir=cfg.OUTPUT_DIR).load(args.model_dir)
-    logger.info("Trained model has been sucessfully loaded")
+
+    # modify roi head to adapt to the additional classes
+    if cfg.ADAPT.CLS:
+        model_student.roi_heads.box_predictor.extend_classes(cfg.ADAPT.CLS_MATCH)
+        model_teacher.roi_heads.box_predictor.extend_classes(cfg.ADAPT.CLS_MATCH)
+        model_student.to(torch.device(cfg.MODEL.DEVICE))
+        model_teacher.to(torch.device(cfg.MODEL.DEVICE))
+
+    wandb.init(project="Open-OD-NeurIPS2024")
+    wandb.run.name = cfg.OUTPUT_DIR
+
+    logger.info("Trained model has been successfully loaded")
     return train_sfda(cfg, model_student, model_teacher)
 
 
